@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown & Mermaid 实时编辑器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .editor-panel {
+            width: 50%;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-panel {
+            width: 50%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mermaid-btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .mermaid-btn:hover {
+            background: #005a9e;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 122, 204, 0.3);
+        }
+
+        .mermaid-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 4px rgba(0, 122, 204, 0.3);
+        }
+
+        .editor-textarea {
+            flex: 1;
+            border: none;
+            padding: 20px;
+            font-family: 'Courier New', Monaco, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            background: #fafafa;
+        }
+
+        .preview-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        /* Markdown 样式 */
+        .preview-content h1, .preview-content h2, .preview-content h3, 
+        .preview-content h4, .preview-content h5, .preview-content h6 {
+            margin: 20px 0 15px 0;
+            color: #333;
+        }
+
+        .preview-content h1 { font-size: 2em; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .preview-content h2 { font-size: 1.6em; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .preview-content h3 { font-size: 1.4em; }
+        .preview-content h4 { font-size: 1.2em; }
+
+        .preview-content p {
+            margin: 15px 0;
+            line-height: 1.7;
+            color: #444;
+        }
+
+        .preview-content code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Monaco, monospace;
+            font-size: 0.9em;
+        }
+
+        .preview-content pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007acc;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .preview-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .preview-content blockquote {
+            border-left: 4px solid #ddd;
+            margin: 15px 0;
+            padding: 10px 15px;
+            background: #f9f9f9;
+            color: #666;
+        }
+
+        .preview-content ul, .preview-content ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        .preview-content li {
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+
+        .preview-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .preview-content th, .preview-content td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .preview-content th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .preview-content a {
+            color: #007acc;
+            text-decoration: none;
+        }
+
+        .preview-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Mermaid 图表样式 */
+        .mermaid {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        /* 脚注样式 */
+        .footnotes {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+        }
+
+        .footnote-ref {
+            color: #007acc;
+            text-decoration: none;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .editor-panel, .preview-panel {
+                width: 100%;
+                height: 50vh;
+            }
+
+            .panel-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .mermaid-btn {
+                align-self: flex-end;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        /* 滚动条样式 */
+        .editor-textarea::-webkit-scrollbar,
+        .preview-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .editor-textarea::-webkit-scrollbar-track,
+        .preview-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .editor-textarea::-webkit-scrollbar-thumb,
+        .preview-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .editor-textarea::-webkit-scrollbar-thumb:hover,
+        .preview-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-panel">
+            <div class="panel-header">
+                <span>📝 Markdown & Mermaid 编辑器</span>
+                <button id="insertMermaidBtn" class="mermaid-btn" title="插入 Mermaid 代码块">
+                    🧩 Mermaid
+                </button>
+            </div>
+            <textarea 
+                id="editor" 
+                class="editor-textarea" 
+                placeholder="在这里输入 Markdown 文本和 Mermaid 图表...
+
+示例:
+# 标题
+
+这是一个 **加粗** 和 *斜体* 的示例。
+
+## Mermaid 流程图
+
+```mermaid
+graph TD
+    A[开始] --> B{判断条件}
+    B -->|是| C[执行操作A]
+    B -->|否| D[执行操作B]
+    C --> E[结束]
+    D --> E
+```
+
+## 代码块
+
+```javascript
+console.log('Hello, World!');
+```
+
+## 列表
+
+- 项目 1
+- 项目 2
+  - 子项目 2.1
+  - 子项目 2.2
+
+## 表格
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| 数据1 | 数据2 | 数据3 |
+| 数据4 | 数据5 | 数据6 |
+
+## 脚注
+
+这是一个带脚注的文本[^1]。
+
+[^1]: 这是脚注内容。
+"></textarea>
+        </div>
+        
+        <div class="preview-panel">
+            <div class="panel-header">
+                👁️ 实时预览
+            </div>
+            <div id="preview" class="preview-content">
+                <!-- 预览内容将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Markdown 和 Mermaid 支持脚本 -->
+    <script type="module">
+        let md, mermaid;
+        
+        // 初始化 Markdown-it
+        async function initMarkdown() {
+            try {
+                const MarkdownItModule = await import('https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm');
+                const MarkdownIt = MarkdownItModule.default;
+
+                // 导入插件
+                const markdownItSubModule = await import('https://cdn.jsdelivr.net/npm/markdown-it-sub@2.0.0/+esm');
+                const markdownItSub = markdownItSubModule.default;
+                const markdownItSupModule = await import('https://cdn.jsdelivr.net/npm/markdown-it-sup@2.0.0/+esm');
+                const markdownItSup = markdownItSupModule.default;
+                const markdownItFootNoteModule = await import('https://cdn.jsdelivr.net/npm/markdown-it-footnote@4.0.0/+esm');
+                const markdownItFootNote = markdownItFootNoteModule.default;
+
+                md = new MarkdownIt({
+                    html: true,
+                    xhtmlOut: false,
+                    breaks: false,
+                    langPrefix: 'language-',
+                    linkify: true,
+                    typographer: true,
+                });
+
+                md.use(markdownItSub);
+                md.use(markdownItSup);
+                md.use(markdownItFootNote);
+
+                console.log('Markdown-it 初始化完成');
+            } catch (error) {
+                console.error('初始化 Markdown 失败:', error);
+            }
+        }
+
+        // 初始化 Mermaid
+        async function initMermaid() {
+            try {
+                const mermaidModule = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+                mermaid = mermaidModule.default;
+                
+                await mermaid.initialize({ 
+                    startOnLoad: false,
+                    theme: 'default',
+                    securityLevel: 'loose',
+                });
+                
+                console.log('Mermaid 初始化完成');
+            } catch (error) {
+                console.error('初始化 Mermaid 失败:', error);
+            }
+        }
+
+        // 渲染内容
+        async function renderContent(text) {
+            if (!md || !mermaid) return;
+            
+            try {
+                const previewElement = document.getElementById('preview');
+                
+                // 渲染 Markdown
+                const htmlContent = md.render(text);
+                previewElement.innerHTML = htmlContent;
+                
+                // 渲染 Mermaid 图表
+                const mermaidElements = previewElement.querySelectorAll('.language-mermaid');
+                for (let i = 0; i < mermaidElements.length; i++) {
+                    const element = mermaidElements[i];
+                    const code = element.textContent;
+                    
+                    try {
+                        const { svg } = await mermaid.render(`mermaid-${Date.now()}-${i}`, code);
+                        element.innerHTML = svg;
+                        element.classList.remove('language-mermaid');
+                        element.classList.add('mermaid');
+                    } catch (mermaidError) {
+                        console.error('Mermaid 渲染错误:', mermaidError);
+                        element.innerHTML = `<div style="color: red; padding: 10px; border: 1px solid red; background: #ffe6e6;">
+                            Mermaid 渲染错误: ${mermaidError.message || '未知错误'}
+                        </div>`;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('渲染内容失败:', error);
+            }
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 插入 Mermaid 代码块
+        function insertMermaidBlock() {
+            const editor = document.getElementById('editor');
+            const cursorPos = editor.selectionStart;
+            const textBefore = editor.value.substring(0, cursorPos);
+            const textAfter = editor.value.substring(cursorPos);
+            
+            // Mermaid 代码块模板 - 前后各加空行，内部为空
+            const mermaidTemplate = `
+
+\`\`\`mermaid
+
+\`\`\`
+
+`;
+            
+            // 插入代码块
+            editor.value = textBefore + mermaidTemplate + textAfter;
+            
+            // 计算新的光标位置（在代码块内部的空行）
+            const newCursorPos = cursorPos + '\n```mermaid\n'.length;
+            
+            // 设置光标位置到代码块内部
+            editor.focus();
+            editor.setSelectionRange(newCursorPos, newCursorPos);
+            
+            // 触发输入事件以更新预览
+            editor.dispatchEvent(new Event('input'));
+        }
+
+        // 初始化应用
+        async function initApp() {
+            await Promise.all([initMarkdown(), initMermaid()]);
+            
+            const editor = document.getElementById('editor');
+            const insertBtn = document.getElementById('insertMermaidBtn');
+            const debouncedRender = debounce((text) => renderContent(text), 300);
+            
+            // 监听输入事件
+            editor.addEventListener('input', (e) => {
+                debouncedRender(e.target.value);
+            });
+            
+            // 监听 Mermaid 按钮点击
+            insertBtn.addEventListener('click', insertMermaidBlock);
+            
+            // 支持快捷键 Ctrl+M 或 Cmd+M
+            editor.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+                    e.preventDefault();
+                    insertMermaidBlock();
+                }
+            });
+            
+            // 初始渲染
+            renderContent(editor.value);
+            
+            console.log('应用初始化完成');
+        }
+
+        // 启动应用
+        initApp();
+    </script>
+</body>
+</html>
