@@ -473,15 +473,15 @@
             font-size: 13px;
         }
 
-        .status-200 {
+        .status-200 { 
             background: linear-gradient(135deg, var(--success), #38a169);
             color: white;
         }
-        .status-400 {
+        .status-400 { 
             background: linear-gradient(135deg, var(--warning), #dd6b20);
             color: white;
         }
-        .status-500 {
+        .status-500 { 
             background: linear-gradient(135deg, var(--error), #e53e3e);
             color: white;
         }
@@ -539,7 +539,7 @@
             .main-content {
                 grid-template-columns: 1fr;
             }
-
+            
             .request-panel {
                 border-right: none;
                 border-bottom: 1px solid var(--border-light);
@@ -585,6 +585,7 @@
             }
         }
 
+        /* Micro-interactions */
         .form-group {
             transition: transform 0.2s ease;
         }
@@ -602,6 +603,7 @@
             opacity: 0.5;
         }
 
+        /* Enhanced visual feedback */
         .btn-base:focus {
             outline: none;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
@@ -636,11 +638,11 @@
                 <p>专业级API调试平台，支持流式响应与实时监测</p>
             </div>
         </div>
-
+        
         <div class="main-content">
             <div class="request-panel">
                 <h2 class="panel-title">请求配置</h2>
-
+                
                 <div class="curl-section">
                     <div class="form-group">
                         <label class="form-label">导入cURL命令</label>
@@ -676,7 +678,7 @@
                         <button class="preset-btn" onclick="addAuthHeader('bearer')">🎫 Bearer Token</button>
                         <button class="preset-btn" onclick="addAuthHeader('basic')">👤 Basic Auth</button>
                     </div>
-
+                    
                     <div id="headers-container">
                         <div class="header-row">
                             <input type="text" class="header-input" placeholder="Content-Type" value="Content-Type">
@@ -735,12 +737,15 @@
         let requestStartTime = 0;
 
         function switchTab(tabName) {
+            // 移除所有active类
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
+            
+            // 添加active类到当前tab
             event.target.classList.add('active');
             document.getElementById(tabName + '-tab').classList.add('active');
-
+            
+            // 添加微妙的反馈动画
             event.target.style.transform = 'scale(0.98)';
             setTimeout(() => {
                 event.target.style.transform = 'scale(1)';
@@ -756,11 +761,12 @@
                 <input type="text" class="header-input" placeholder="请求头值">
                 <button class="btn-base remove-btn" onclick="removeHeader(this)">🗑️</button>
             `;
-
+            
+            // 添加入场动画
             headerRow.style.opacity = '0';
             headerRow.style.transform = 'translateY(-10px)';
             container.appendChild(headerRow);
-
+            
             setTimeout(() => {
                 headerRow.style.transition = 'all 0.3s ease';
                 headerRow.style.opacity = '1';
@@ -773,7 +779,7 @@
             row.style.transition = 'all 0.3s ease';
             row.style.opacity = '0';
             row.style.transform = 'translateX(20px)';
-
+            
             setTimeout(() => {
                 row.remove();
             }, 300);
@@ -783,7 +789,7 @@
             const container = document.getElementById('headers-container');
             const headerRow = document.createElement('div');
             headerRow.className = 'header-row';
-
+            
             switch(type) {
                 case 'api-key':
                     headerRow.innerHTML = `
@@ -807,11 +813,12 @@
                     `;
                     break;
             }
-
+            
+            // 添加入场动画
             headerRow.style.opacity = '0';
             headerRow.style.transform = 'translateY(-10px)';
             container.appendChild(headerRow);
-
+            
             setTimeout(() => {
                 headerRow.style.transition = 'all 0.3s ease';
                 headerRow.style.opacity = '1';
@@ -827,6 +834,7 @@
             }
 
             try {
+                // 解析cURL命令
                 const urlMatch = curlCommand.match(/curl\s+(?:-X\s+\w+\s+)?['"]?([^'"\s]+)['"]?/);
                 if (urlMatch) {
                     document.getElementById('url').value = urlMatch[1];
@@ -837,16 +845,17 @@
                     document.getElementById('method').value = methodMatch[1].toUpperCase();
                 }
 
+                // 解析请求头
                 const headerMatches = curlCommand.matchAll(/-H\s+['"]([^'"]+)['"]?/g);
                 const container = document.getElementById('headers-container');
-                container.innerHTML = '';
+                container.innerHTML = ''; // 清空现有请求头
 
                 for (const match of headerMatches) {
                     const headerParts = match[1].split(':');
                     if (headerParts.length >= 2) {
                         const headerName = headerParts[0].trim();
                         const headerValue = headerParts.slice(1).join(':').trim();
-
+                        
                         const headerRow = document.createElement('div');
                         headerRow.className = 'header-row';
                         headerRow.innerHTML = `
@@ -858,151 +867,274 @@
                     }
                 }
 
-                const dataMatch = curlCommand.match(/(--data-raw|--data|--data-binary|--data-urlencode)\s+['"](.*?)['"]/s);
-                if (dataMatch && dataMatch[2]) {
-                    document.getElementById('requestBody').value = dataMatch[2];
-                    if (!document.querySelector('.tabs .tab[onclick="switchTab(\'body\')"]').classList.contains('active')) {
-                         switchTab('body');
+                // 解析请求体
+                const dataMatch = curlCommand.match(/-d\s+'([^']+)'/s) || 
+                                  curlCommand.match(/-d\s+"([^"]+)"/s) ||
+                                  curlCommand.match(/--data\s+'([^']+)'/s) ||
+                                  curlCommand.match(/--data\s+"([^"]+)"/s) ||
+                                  curlCommand.match(/-d\s+(.+?)(?:\s+-[a-zA-Z]|$)/s);
+                if (dataMatch) {
+                    const bodyData = dataMatch[1];
+                    try {
+                        // 尝试格式化JSON
+                        const jsonData = JSON.parse(bodyData);
+                        document.getElementById('requestBody').value = JSON.stringify(jsonData, null, 2);
+                    } catch {
+                        document.getElementById('requestBody').value = bodyData;
                     }
-                } else {
-                     document.getElementById('requestBody').value = '';
-                     if (!document.querySelector('.tabs .tab[onclick="switchTab(\'headers\')"]').classList.contains('active')) {
-                         switchTab('headers');
-                     }
                 }
-
 
                 showNotification('cURL命令导入成功！', 'success');
             } catch (error) {
-                console.error("cURL解析错误:", error);
-                showNotification('cURL解析失败，请检查命令格式', 'error');
+                showNotification('cURL命令格式错误，请检查后重试', 'error');
+                console.error('cURL解析错误:', error);
             }
         }
 
-        async function sendRequest() {
-            const url = document.getElementById('url').value;
-            const method = document.getElementById('method').value;
+        function getHeaders() {
             const headers = {};
-            document.querySelectorAll('#headers-container .header-row').forEach(row => {
-                const keyInput = row.querySelector('.header-input:nth-child(1)');
-                const valueInput = row.querySelector('.header-input:nth-child(2)');
-                const key = keyInput.value.trim();
-                const value = valueInput.value.trim();
-                if (key) {
+            const headerRows = document.querySelectorAll('#headers-container .header-row');
+            
+            headerRows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const key = inputs[0].value.trim();
+                const value = inputs[1].value.trim();
+                if (key && value) {
                     headers[key] = value;
                 }
             });
+            
+            return headers;
+        }
 
-            let body = null;
-            if (method !== 'GET' && method !== 'HEAD') {
-                const requestBodyText = document.getElementById('requestBody').value.trim();
-                if (requestBodyText) {
-                     try {
-                         body = requestBodyText;
-                         if (headers['Content-Type'] && headers['Content-Type'].toLowerCase().includes('json')) {
-                             body = JSON.stringify(JSON.parse(requestBodyText), null, 2);
-                             document.getElementById('requestBody').value = body;
-                         }
-                     } catch (e) {
-                         showNotification('请求体JSON格式错误', 'error');
-                         return;
-                     }
-                }
+        function showNotification(message, type = 'info') {
+            const indicator = document.getElementById('successIndicator');
+            indicator.textContent = message;
+            indicator.className = `success-indicator show ${type}`;
+            
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 3000);
+        }
+
+        async function sendRequest() {
+            const method = document.getElementById('method').value;
+            const url = document.getElementById('url').value.trim();
+            const headers = getHeaders();
+            const body = document.getElementById('requestBody').value.trim();
+            
+            if (!url) {
+                showNotification('请输入URL地址', 'error');
+                return;
             }
 
+            const sendBtn = document.getElementById('sendBtn');
             const responseArea = document.getElementById('responseArea');
             const statusInfo = document.getElementById('statusInfo');
-            const statusCodeSpan = document.getElementById('statusCode');
-            const responseTimeSpan = document.getElementById('responseTime');
-            const sendBtn = document.getElementById('sendBtn');
-
-            responseArea.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><span class="loading"></span></div><p>发送请求中...</p></div>`;
-            statusInfo.style.display = 'none';
-            statusCodeSpan.textContent = '-';
-            responseTimeSpan.textContent = '-';
+            
             sendBtn.disabled = true;
-            sendBtn.innerHTML = '发送中 <span class="loading"></span>';
-
-            requestStartTime = performance.now();
+            sendBtn.innerHTML = '<span class="loading"></span> 发送中...';
+            responseArea.innerHTML = '🔄 正在发送请求，请稍候...\n';
+            statusInfo.style.display = 'none';
+            
+            requestStartTime = Date.now();
 
             try {
-                const response = await fetch(url, {
+                const requestOptions = {
                     method: method,
                     headers: headers,
-                    body: body
-                });
+                    mode: 'cors'
+                };
 
-                const responseTime = performance.now() - requestStartTime;
-                const statusCode = response.status;
-
-                statusCodeSpan.textContent = statusCode;
-                statusCodeSpan.className = 'status-code';
-                if (statusCode >= 200 && statusCode < 300) {
-                    statusCodeSpan.classList.add('status-200');
-                    showNotification('请求成功！', 'success');
-                } else if (statusCode >= 400 && statusCode < 500) {
-                     statusCodeSpan.classList.add('status-400');
-                     showNotification('客户端错误', 'warning');
-                } else if (statusCode >= 500) {
-                     statusCodeSpan.classList.add('status-500');
-                     showNotification('服务器错误', 'error');
-                } else {
-                     statusCodeSpan.classList.add('status-400');
-                     showNotification('请求完成，非标准状态码', 'warning');
+                if (body && ['POST', 'PUT', 'PATCH'].includes(method)) {
+                    requestOptions.body = body;
                 }
 
-                responseTimeSpan.textContent = responseTime.toFixed(2);
+                const response = await fetch(url, requestOptions);
+                const responseTime = Date.now() - requestStartTime;
+                
+                // 显示状态信息
                 statusInfo.style.display = 'flex';
+                const statusCode = document.getElementById('statusCode');
+                statusCode.textContent = response.status;
+                statusCode.className = `status-code status-${Math.floor(response.status / 100) * 100}`;
+                document.getElementById('responseTime').textContent = responseTime;
 
-                const contentType = response.headers.get('Content-Type');
-                let responseText = await response.text();
-
-                if (contentType && contentType.includes('application/json')) {
-                    try {
-                        responseText = JSON.stringify(JSON.parse(responseText), null, 2);
-                    } catch (e) {
-
-                    }
+                // 检查是否为流式响应
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('text/event-stream') || 
+                    contentType.includes('stream') || 
+                    url.includes('stream')) {
+                    await handleStreamResponse(response);
+                } else {
+                    const responseText = await response.text();
+                    displayResponse(responseText);
                 }
 
-                responseArea.innerHTML = `<pre>${escapeHTML(responseText)}</pre>`;
-
+                if (response.ok) {
+                    showNotification('请求成功完成！', 'success');
+                } else {
+                    showNotification(`请求失败: ${response.status}`, 'error');
+                }
 
             } catch (error) {
-                const responseTime = performance.now() - requestStartTime;
-                responseTimeSpan.textContent = responseTime.toFixed(2);
+                const responseTime = Date.now() - requestStartTime;
                 statusInfo.style.display = 'flex';
-                statusCodeSpan.textContent = 'Error';
-                statusCodeSpan.className = 'status-code status-500';
-                responseArea.innerHTML = `<div class="empty-state"><div class="empty-state-icon">❌</div><p>请求失败</p><p style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${escapeHTML(error.message)}</p></div>`;
-                showNotification(`请求失败: ${error.message}`, 'error');
-                console.error("Fetch error:", error);
+                document.getElementById('statusCode').textContent = 'Error';
+                document.getElementById('statusCode').className = 'status-code status-500';
+                document.getElementById('responseTime').textContent = responseTime;
+                
+                responseArea.textContent = `❌ 请求失败: ${error.message}\n\n请检查：\n• URL是否正确\n• 网络连接是否正常\n• 服务器是否支持CORS跨域请求`;
+                showNotification('请求发送失败', 'error');
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '🚀 发送请求';
             }
         }
 
-        function escapeHTML(str) {
-            return str.replace(/&/g, '&')
-                      .replace(/</g, '<')
-                      .replace(/>/g, '>')
-                      .replace(/"/g, '"')
-                      .replace(/'/g, ''');
+        async function handleStreamResponse(response) {
+            const responseArea = document.getElementById('responseArea');
+            responseArea.innerHTML = '📡 接收流式数据中...\n\n';
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedData = '';
+            
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) {
+                        responseArea.innerHTML += '\n\n✅ 流式数据接收完成';
+                        break;
+                    }
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    accumulatedData += chunk;
+                    
+                    // 实时显示数据块
+                    await typewriterEffect(responseArea, chunk);
+                }
+            } catch (error) {
+                responseArea.textContent += `\n\n❌ 流式读取错误: ${error.message}`;
+            }
         }
 
-        let notificationTimeout;
-        function showNotification(message, type = 'success') {
-            const indicator = document.getElementById('successIndicator');
-            indicator.textContent = message;
-            indicator.className = `success-indicator show status-${type === 'warning' ? '400' : type === 'error' ? '500' : '200'}`;
-
-            clearTimeout(notificationTimeout);
-            notificationTimeout = setTimeout(() => {
-                indicator.classList.remove('show');
-            }, 3000);
+        async function typewriterEffect(element, text) {
+            return new Promise((resolve) => {
+                let index = 0;
+                const originalContent = element.textContent;
+                
+                const typeInterval = setInterval(() => {
+                    if (index < text.length) {
+                        if (index === 0) {
+                            // 首次写入时清除初始提示
+                            if (originalContent.includes('接收流式数据中')) {
+                                element.textContent = '📊 实时响应数据:\n\n';
+                            }
+                        }
+                        element.textContent += text.charAt(index);
+                        element.scrollTop = element.scrollHeight;
+                        index++;
+                    } else {
+                        clearInterval(typeInterval);
+                        resolve();
+                    }
+                }, 15); // 调整打字速度以获得更好的体验
+            });
         }
 
+        function displayResponse(text) {
+            const responseArea = document.getElementById('responseArea');
+            
+            try {
+                // 尝试格式化JSON
+                const jsonData = JSON.parse(text);
+                responseArea.textContent = JSON.stringify(jsonData, null, 2);
+                
+                // 添加语法高亮提示
+                responseArea.innerHTML = '📋 JSON响应 (已格式化):\n\n' + responseArea.textContent;
+            } catch {
+                // 如果不是JSON，直接显示
+                responseArea.textContent = '📄 响应内容:\n\n' + text;
+            }
+            
+            responseArea.scrollTop = responseArea.scrollHeight;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加快捷键支持
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + Enter 发送请求
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    sendRequest();
+                }
+                
+                // Ctrl/Cmd + K 清空响应区域
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    document.getElementById('responseArea').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🧹</div>
+                            <p>响应区域已清空</p>
+                        </div>
+                    `;
+                    document.getElementById('statusInfo').style.display = 'none';
+                }
+            });
+
+            // 自动保存用户输入到会话存储
+            const inputs = ['url', 'requestBody'];
+            inputs.forEach(id => {
+                const element = document.getElementById(id);
+                const savedValue = sessionStorage.getItem(id);
+                if (savedValue) {
+                    element.value = savedValue;
+                }
+                
+                element.addEventListener('input', () => {
+                    sessionStorage.setItem(id, element.value);
+                });
+            });
+
+            // 添加输入验证反馈
+            const urlInput = document.getElementById('url');
+            urlInput.addEventListener('input', function() {
+                const url = this.value.trim();
+                if (url && !isValidUrl(url)) {
+                    this.style.borderColor = 'var(--error)';
+                    this.style.boxShadow = '0 0 0 3px rgba(245, 101, 101, 0.1)';
+                } else {
+                    this.style.borderColor = '';
+                    this.style.boxShadow = '';
+                }
+            });
+
+            showNotification('调试工具已就绪！快捷键: Ctrl+Enter 发送, Ctrl+K 清空', 'success');
+        });
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // 添加复制响应内容功能
+        document.getElementById('responseArea').addEventListener('dblclick', function() {
+            const text = this.textContent;
+            if (text && text.trim() !== '等待发送请求...' && !text.includes('empty-state')) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification('响应内容已复制到剪贴板', 'success');
+                }).catch(() => {
+                    showNotification('复制失败，请手动选择复制', 'error');
+                });
+            }
+        });
     </script>
 </body>
 </html>
