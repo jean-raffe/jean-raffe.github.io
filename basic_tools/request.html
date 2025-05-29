@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API调试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --surface-gradient: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --accent-blue: #667eea;
+            --accent-purple: #764ba2;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --error: #f56565;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            padding: 24px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 32px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: shimmer 8s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            50% { transform: translate(-50%, -50%) rotate(180deg); }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(45deg, #ffffff, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: minmax(400px, 1fr) minmax(400px, 1fr);
+            min-height: calc(100vh - 180px);
+        }
+
+        .request-panel, .response-panel {
+            padding: 40px;
+            position: relative;
+        }
+
+        .request-panel {
+            background: var(--surface-gradient);
+            border-right: 1px solid var(--border-light);
+        }
+
+        .response-panel {
+            background: linear-gradient(145deg, #f7fafc 0%, #edf2f7 100%);
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            letter-spacing: 0.025em;
+        }
+
+        .input-base {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .input-base:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+        }
+
+        .input-base:hover:not(:focus) {
+            border-color: #cbd5e0;
+            transform: translateY(-0.5px);
+        }
+
+        .url-input-group {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .method-select {
+            flex: 0 0 140px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .url-input {
+            flex: 1;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            padding: 4px;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-light);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 14px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            font-size: 0.95rem;
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .tab.active {
+            color: white;
+            background: var(--primary-gradient);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+        }
+
+        .header-row:hover {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.2s ease;
+        }
+
+        .header-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+            background: white;
+        }
+
+        .btn-base {
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-base:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-base:active {
+            transform: translateY(0);
+        }
+
+        .remove-btn {
+            background: linear-gradient(135deg, var(--error), #e53e3e);
+            color: white;
+            padding: 8px 12px;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .remove-btn:hover {
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.3);
+        }
+
+        .add-header-btn {
+            background: linear-gradient(135deg, var(--success), #38a169);
+            color: white;
+            padding: 12px 20px;
+            font-size: 14px;
+            margin-top: 16px;
+        }
+
+        .add-header-btn:hover {
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+        }
+
+        .auth-preset {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            padding: 10px 16px;
+            font-size: 13px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+
+        .send-btn {
+            width: 100%;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 18px 24px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 12px;
+            margin-top: 32px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .send-btn:hover::before {
+            left: 100%;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .send-btn:disabled:hover {
+            box-shadow: none;
+        }
+
+        .curl-section {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 28px;
+            border: 1px solid var(--border-light);
+        }
+
+        .curl-input {
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        .import-btn {
+            background: linear-gradient(135deg, var(--warning), #dd6b20);
+            color: white;
+            padding: 12px 20px;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+
+        .import-btn:hover {
+            box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
+        }
+
+        .response-area {
+            background: linear-gradient(145deg, #2d3748, #1a202c);
+            color: #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            min-height: 500px;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            border: 1px solid #4a5568;
+            position: relative;
+        }
+
+        .response-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .response-area::-webkit-scrollbar-track {
+            background: #2d3748;
+            border-radius: 4px;
+        }
+
+        .response-area::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+
+        .response-area::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+
+        .status-info {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-light);
+        }
+
+        .status-code {
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .status-200 {
+            background: linear-gradient(135deg, var(--success), #38a169);
+            color: white;
+        }
+        .status-400 {
+            background: linear-gradient(135deg, var(--warning), #dd6b20);
+            color: white;
+        }
+        .status-500 {
+            background: linear-gradient(135deg, var(--error), #e53e3e);
+            color: white;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .typewriter {
+            border-right: 2px solid var(--accent-blue);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { border-color: transparent; }
+            51%, 100% { border-color: var(--accent-blue); }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .request-body-textarea {
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .request-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--border-light);
+            }
+
+            .container {
+                margin: 16px;
+                border-radius: 20px;
+            }
+
+            .header {
+                padding: 24px 32px;
+            }
+
+            .request-panel, .response-panel {
+                padding: 32px 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .url-input-group {
+                flex-direction: column;
+            }
+
+            .method-select {
+                flex: none;
+            }
+
+            .auth-preset {
+                flex-direction: column;
+            }
+
+            .preset-btn {
+                width: 100%;
+            }
+        }
+
+        .form-group {
+            transition: transform 0.2s ease;
+        }
+
+        .form-group:hover {
+            transform: translateY(-1px);
+        }
+
+        .input-base::placeholder {
+            color: var(--text-muted);
+            transition: opacity 0.2s ease;
+        }
+
+        .input-base:focus::placeholder {
+            opacity: 0.5;
+        }
+
+        .btn-base:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .success-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--success);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .success-indicator.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>🚀 API调试工具</h1>
+                <p>专业级API调试平台，支持流式响应与实时监测</p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="request-panel">
+                <h2 class="panel-title">请求配置</h2>
+
+                <div class="curl-section">
+                    <div class="form-group">
+                        <label class="form-label">导入cURL命令</label>
+                        <textarea class="input-base curl-input" id="curlInput" placeholder="粘贴您的cURL命令，一键导入配置..." rows="3"></textarea>
+                        <button class="btn-base import-btn" onclick="importCurl()">📥 导入cURL</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">请求方法与URL</label>
+                    <div class="url-input-group">
+                        <select class="input-base method-select" id="method">
+                            <option value="GET">GET</option>
+                            <option value="POST" selected>POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="HEAD">HEAD</option>
+                            <option value="OPTIONS">OPTIONS</option>
+                        </select>
+                        <input type="text" class="input-base url-input" id="url" placeholder="https://api.example.com/v1/endpoint">
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('headers')">🔗 请求头</button>
+                    <button class="tab" onclick="switchTab('body')">📄 请求体</button>
+                </div>
+
+                <div id="headers-tab" class="tab-content active">
+                    <div class="auth-preset">
+                        <button class="preset-btn" onclick="addAuthHeader('api-key')">🔑 API Key</button>
+                        <button class="preset-btn" onclick="addAuthHeader('bearer')">🎫 Bearer Token</button>
+                        <button class="preset-btn" onclick="addAuthHeader('basic')">👤 Basic Auth</button>
+                    </div>
+
+                    <div id="headers-container">
+                        <div class="header-row">
+                            <input type="text" class="header-input" placeholder="Content-Type" value="Content-Type">
+                            <input type="text" class="header-input" placeholder="application/json" value="application/json">
+                            <button class="btn-base remove-btn" onclick="removeHeader(this)">🗑️</button>
+                        </div>
+                    </div>
+                    <button class="btn-base add-header-btn" onclick="addHeader()">➕ 添加请求头</button>
+                </div>
+
+                <div id="body-tab" class="tab-content">
+                    <div class="form-group">
+                        <label class="form-label">请求体内容 (JSON格式)</label>
+                        <textarea class="input-base request-body-textarea" id="requestBody" rows="10" placeholder='{
+  "message": "Hello, World!",
+  "timestamp": "2025-05-29T12:00:00Z",
+  "metadata": {
+    "source": "api-debugger",
+    "version": "1.0"
+  }
+}'></textarea>
+                    </div>
+                </div>
+
+                <button class="btn-base send-btn" id="sendBtn" onclick="sendRequest()">
+                    🚀 发送请求
+                </button>
+            </div>
+
+            <div class="response-panel">
+                <h2 class="panel-title">响应结果</h2>
+                <div class="success-indicator" id="successIndicator">请求成功！</div>
+                <div class="status-info" id="statusInfo">
+                    <div>
+                        <span>状态码: </span>
+                        <span class="status-code" id="statusCode">-</span>
+                    </div>
+                    <div>
+                        <span>响应时间: </span>
+                        <span id="responseTime">-</span>
+                        <span>ms</span>
+                    </div>
+                </div>
+                <div class="response-area" id="responseArea">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⏳</div>
+                        <p>配置请求参数后点击发送按钮</p>
+                        <p style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">支持实时流式响应显示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let requestStartTime = 0;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            event.target.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                event.target.style.transform = 'scale(1)';
+            }, 100);
+        }
+
+        function addHeader() {
+            const container = document.getElementById('headers-container');
+            const headerRow = document.createElement('div');
+            headerRow.className = 'header-row';
+            headerRow.innerHTML = `
+                <input type="text" class="header-input" placeholder="请求头名称">
+                <input type="text" class="header-input" placeholder="请求头值">
+                <button class="btn-base remove-btn" onclick="removeHeader(this)">🗑️</button>
+            `;
+
+            headerRow.style.opacity = '0';
+            headerRow.style.transform = 'translateY(-10px)';
+            container.appendChild(headerRow);
+
+            setTimeout(() => {
+                headerRow.style.transition = 'all 0.3s ease';
+                headerRow.style.opacity = '1';
+                headerRow.style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function removeHeader(btn) {
+            const row = btn.parentElement;
+            row.style.transition = 'all 0.3s ease';
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(20px)';
+
+            setTimeout(() => {
+                row.remove();
+            }, 300);
+        }
+
+        function addAuthHeader(type) {
+            const container = document.getElementById('headers-container');
+            const headerRow = document.createElement('div');
+            headerRow.className = 'header-row';
+
+            switch(type) {
+                case 'api-key':
+                    headerRow.innerHTML = `
+                        <input type="text" class="header-input" value="X-API-Key">
+                        <input type="text" class="header-input" placeholder="your-api-key-here">
+                        <button class="btn-base remove-btn" onclick="removeHeader(this)">🗑️</button>
+                    `;
+                    break;
+                case 'bearer':
+                    headerRow.innerHTML = `
+                        <input type="text" class="header-input" value="Authorization">
+                        <input type="text" class="header-input" placeholder="Bearer your-token-here">
+                        <button class="btn-base remove-btn" onclick="removeHeader(this)">🗑️</button>
+                    `;
+                    break;
+                case 'basic':
+                    headerRow.innerHTML = `
+                        <input type="text" class="header-input" value="Authorization">
+                        <input type="text" class="header-input" placeholder="Basic base64(username:password)">
+                        <button class="btn-base remove-btn" onclick="removeHeader(this)">🗑️</button>
+                    `;
+                    break;
+            }
+
+            headerRow.style.opacity = '0';
+            headerRow.style.transform = 'translateY(-10px)';
+            container.appendChild(headerRow);
+
+            setTimeout(() => {
+                headerRow.style.transition = 'all 0.3s ease';
+                headerRow.style.opacity = '1';
+                headerRow.style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function importCurl() {
+            const curlCommand = document.getElementById('curlInput').value.trim();
+            if (!curlCommand) {
+                showNotification('请先输入cURL命令', 'warning');
+                return;
+            }
+
+            try {
+                const urlMatch = curlCommand.match(/curl\s+(?:-X\s+\w+\s+)?['"]?([^'"\s]+)['"]?/);
+                if (urlMatch) {
+                    document.getElementById('url').value = urlMatch[1];
+                }
+
+                const methodMatch = curlCommand.match(/-X\s+(\w+)/i);
+                if (methodMatch) {
+                    document.getElementById('method').value = methodMatch[1].toUpperCase();
+                }
+
+                const headerMatches = curlCommand.matchAll(/-H\s+['"]([^'"]+)['"]?/g);
+                const container = document.getElementById('headers-container');
+                container.innerHTML = '';
+
+                for (const match of headerMatches) {
+                    const headerParts = match[1].split(':');
+                    if (headerParts.length >= 2) {
+                        const headerName = headerParts[0].trim();
+                        const headerValue = headerParts.slice(1).join(':').trim();
+
+                        const headerRow = document.createElement('div');
+                        headerRow.className = 'header-row';
+                        headerRow.innerHTML = `
+                            <input type="text" class="header-input" value="${headerName}">
+                            <input type="text" class="header-input" value="${headerValue}">
+                            <button class="btn-base remove-btn" onclick="removeHeader(this)">🗑️</button>
+                        `;
+                        container.appendChild(headerRow);
+                    }
+                }
+
+                const dataMatch = curlCommand.match(/(--data-raw|--data|--data-binary|--data-urlencode)\s+['"](.*?)['"]/s);
+                if (dataMatch && dataMatch[2]) {
+                    document.getElementById('requestBody').value = dataMatch[2];
+                    if (!document.querySelector('.tabs .tab[onclick="switchTab(\'body\')"]').classList.contains('active')) {
+                         switchTab('body');
+                    }
+                } else {
+                     document.getElementById('requestBody').value = '';
+                     if (!document.querySelector('.tabs .tab[onclick="switchTab(\'headers\')"]').classList.contains('active')) {
+                         switchTab('headers');
+                     }
+                }
+
+
+                showNotification('cURL命令导入成功！', 'success');
+            } catch (error) {
+                console.error("cURL解析错误:", error);
+                showNotification('cURL解析失败，请检查命令格式', 'error');
+            }
+        }
+
+        async function sendRequest() {
+            const url = document.getElementById('url').value;
+            const method = document.getElementById('method').value;
+            const headers = {};
+            document.querySelectorAll('#headers-container .header-row').forEach(row => {
+                const keyInput = row.querySelector('.header-input:nth-child(1)');
+                const valueInput = row.querySelector('.header-input:nth-child(2)');
+                const key = keyInput.value.trim();
+                const value = valueInput.value.trim();
+                if (key) {
+                    headers[key] = value;
+                }
+            });
+
+            let body = null;
+            if (method !== 'GET' && method !== 'HEAD') {
+                const requestBodyText = document.getElementById('requestBody').value.trim();
+                if (requestBodyText) {
+                     try {
+                         body = requestBodyText;
+                         if (headers['Content-Type'] && headers['Content-Type'].toLowerCase().includes('json')) {
+                             body = JSON.stringify(JSON.parse(requestBodyText), null, 2);
+                             document.getElementById('requestBody').value = body;
+                         }
+                     } catch (e) {
+                         showNotification('请求体JSON格式错误', 'error');
+                         return;
+                     }
+                }
+            }
+
+            const responseArea = document.getElementById('responseArea');
+            const statusInfo = document.getElementById('statusInfo');
+            const statusCodeSpan = document.getElementById('statusCode');
+            const responseTimeSpan = document.getElementById('responseTime');
+            const sendBtn = document.getElementById('sendBtn');
+
+            responseArea.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><span class="loading"></span></div><p>发送请求中...</p></div>`;
+            statusInfo.style.display = 'none';
+            statusCodeSpan.textContent = '-';
+            responseTimeSpan.textContent = '-';
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '发送中 <span class="loading"></span>';
+
+            requestStartTime = performance.now();
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: headers,
+                    body: body
+                });
+
+                const responseTime = performance.now() - requestStartTime;
+                const statusCode = response.status;
+
+                statusCodeSpan.textContent = statusCode;
+                statusCodeSpan.className = 'status-code';
+                if (statusCode >= 200 && statusCode < 300) {
+                    statusCodeSpan.classList.add('status-200');
+                    showNotification('请求成功！', 'success');
+                } else if (statusCode >= 400 && statusCode < 500) {
+                     statusCodeSpan.classList.add('status-400');
+                     showNotification('客户端错误', 'warning');
+                } else if (statusCode >= 500) {
+                     statusCodeSpan.classList.add('status-500');
+                     showNotification('服务器错误', 'error');
+                } else {
+                     statusCodeSpan.classList.add('status-400');
+                     showNotification('请求完成，非标准状态码', 'warning');
+                }
+
+                responseTimeSpan.textContent = responseTime.toFixed(2);
+                statusInfo.style.display = 'flex';
+
+                const contentType = response.headers.get('Content-Type');
+                let responseText = await response.text();
+
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                        responseText = JSON.stringify(JSON.parse(responseText), null, 2);
+                    } catch (e) {
+
+                    }
+                }
+
+                responseArea.innerHTML = `<pre>${escapeHTML(responseText)}</pre>`;
+
+
+            } catch (error) {
+                const responseTime = performance.now() - requestStartTime;
+                responseTimeSpan.textContent = responseTime.toFixed(2);
+                statusInfo.style.display = 'flex';
+                statusCodeSpan.textContent = 'Error';
+                statusCodeSpan.className = 'status-code status-500';
+                responseArea.innerHTML = `<div class="empty-state"><div class="empty-state-icon">❌</div><p>请求失败</p><p style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${escapeHTML(error.message)}</p></div>`;
+                showNotification(`请求失败: ${error.message}`, 'error');
+                console.error("Fetch error:", error);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '🚀 发送请求';
+            }
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, '&')
+                      .replace(/</g, '<')
+                      .replace(/>/g, '>')
+                      .replace(/"/g, '"')
+                      .replace(/'/g, ''');
+        }
+
+        let notificationTimeout;
+        function showNotification(message, type = 'success') {
+            const indicator = document.getElementById('successIndicator');
+            indicator.textContent = message;
+            indicator.className = `success-indicator show status-${type === 'warning' ? '400' : type === 'error' ? '500' : '200'}`;
+
+            clearTimeout(notificationTimeout);
+            notificationTimeout = setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>
