@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GROQ TTS 语音合成工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="url"], textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type="text"]:focus, input[type="url"]:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            width: 100%;
+            margin: 32px 0 16px 0;
+        }
+
+        .controls {
+            display: none;
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .controls.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #667eea;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin: 20px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            color: #e74c3c;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .modal-header::before {
+            content: '⚠️';
+            margin-right: 8px;
+        }
+
+        .modal-body {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            text-align: right;
+        }
+
+        .close-btn {
+            background: #e74c3c;
+            padding: 10px 24px;
+            font-size: 14px;
+        }
+
+        .close-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Audio player styles */
+        audio {
+            width: 100%;
+            margin: 16px 0;
+            border-radius: 8px;
+        }
+
+        .input-hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 12px 24px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 GROQ TTS 语音合成</h1>
+        
+        <form id="ttsForm">
+            <div class="form-group">
+                <label for="baseUrl">GROQ Base URL</label>
+                <input type="url" id="baseUrl" value="https://api.groq.com" required>
+                <div class="input-hint">默认为 https://api.groq.com</div>
+            </div>
+
+            <div class="form-group">
+                <label for="apiKey">GROQ API Key *</label>
+                <input type="text" id="apiKey" placeholder="输入您的 GROQ API Key" required>
+                <div class="input-hint">请确保API Key有效且有足够权限</div>
+            </div>
+
+            <div class="form-group">
+                <label for="text">要转换的文本 *</label>
+                <textarea id="text" placeholder="输入您想要转换为语音的文本..." required>I love building and shipping new features for our users!</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="voice">音色选择</label>
+                <select id="voice" required>
+                    <option value="Fritz-PlayAI">Fritz-PlayAI</option>
+                    <option value="Mitch-PlayAI">Mitch-PlayAI</option>
+                    <option value="Briggs-PlayAI">Briggs-PlayAI</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="generateBtn">
+                🎯 生成语音
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            正在生成语音，请稍候...
+        </div>
+
+        <div class="controls" id="controls">
+            <audio id="audioPlayer" controls preload="none"></audio>
+            <div>
+                <button class="btn" id="playBtn">▶️ 播放</button>
+                <a class="btn" id="downloadBtn" download="groq-tts-audio.wav">📥 下载</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal" id="errorModal">
+        <div class="modal-content">
+            <div class="modal-header">错误提示</div>
+            <div class="modal-body" id="errorMessage"></div>
+            <div class="modal-footer">
+                <button class="btn close-btn" id="closeModal">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioBlob = null;
+
+        document.getElementById('ttsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const text = document.getElementById('text').value.trim();
+            const voice = document.getElementById('voice').value;
+            
+            if (!apiKey || !text) {
+                showError('请填写所有必填字段');
+                return;
+            }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const controls = document.getElementById('controls');
+            
+            generateBtn.disabled = true;
+            generateBtn.textContent = '生成中...';
+            loading.classList.add('show');
+            controls.classList.remove('show');
+
+            try {
+                const response = await fetch(`${baseUrl}/openai/v1/audio/speech`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'playai-tts',
+                        input: text,
+                        voice: voice,
+                        response_format: 'wav'
+                    })
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            errorMessage = errorData.error.message || errorData.error;
+                        }
+                    } catch (e) {
+                        // 如果无法解析JSON，使用默认错误消息
+                    }
+                    
+                    throw new Error(errorMessage);
+                }
+
+                audioBlob = await response.blob();
+                
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audioPlayer = document.getElementById('audioPlayer');
+                const downloadBtn = document.getElementById('downloadBtn');
+                
+                audioPlayer.src = audioUrl;
+                downloadBtn.href = audioUrl;
+                
+                controls.classList.add('show');
+                
+            } catch (error) {
+                console.error('生成语音失败:', error);
+                showError(`生成语音失败: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🎯 生成语音';
+                loading.classList.remove('show');
+            }
+        });
+
+        document.getElementById('playBtn').addEventListener('click', () => {
+            const audioPlayer = document.getElementById('audioPlayer');
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        });
+
+        document.getElementById('audioPlayer').addEventListener('play', () => {
+            document.getElementById('playBtn').innerHTML = '⏸️ 暂停';
+        });
+
+        document.getElementById('audioPlayer').addEventListener('pause', () => {
+            document.getElementById('playBtn').innerHTML = '▶️ 播放';
+        });
+
+        document.getElementById('audioPlayer').addEventListener('ended', () => {
+            document.getElementById('playBtn').innerHTML = '▶️ 播放';
+        });
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.add('show');
+        }
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('errorModal').classList.remove('show');
+        });
+
+        document.getElementById('errorModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('errorModal')) {
+                document.getElementById('errorModal').classList.remove('show');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('errorModal').classList.remove('show');
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (audioBlob) {
+                URL.revokeObjectURL(document.getElementById('audioPlayer').src);
+            }
+        });
+    </script>
+</body>
+</html>
