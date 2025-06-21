@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI TTS Pro - 专业语音合成</title>
+    <style>
+        :root {
+            --primary-blue: #007AFF;
+            --primary-blue-hover: #0056CC;
+            --secondary-blue: #5856D6;
+            --background-primary: #F2F2F7;
+            --background-secondary: #FFFFFF;
+            --background-tertiary: #F8F9FA;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --text-tertiary: #C7C7CC;
+            --border-primary: #D2D2D7;
+            --border-secondary: #E5E5EA;
+            --success-green: #30D158;
+            --warning-orange: #FF9500;
+            --error-red: #FF3B30;
+            --shadow-light: rgba(0, 0, 0, 0.04);
+            --shadow-medium: rgba(0, 0, 0, 0.08);
+            --shadow-heavy: rgba(0, 0, 0, 0.12);
+            --blur-background: rgba(255, 255, 255, 0.8);
+            --gradient-premium: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-button: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+            background: var(--background-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            background: var(--gradient-premium);
+            position: relative;
+        }
+
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 20%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-card {
+            background: var(--blur-background);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px var(--shadow-medium), 0 0 0 0.5px rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .main-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 48px var(--shadow-heavy), 0 0 0 0.5px rgba(255, 255, 255, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            padding: 48px 40px 32px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+            border-bottom: 1px solid var(--border-secondary);
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-button);
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .input-container {
+            position: relative;
+            background: var(--background-secondary);
+            border-radius: 12px;
+            border: 1.5px solid var(--border-primary);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+        }
+
+        .input-container:focus-within {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            color: var(--text-primary);
+            outline: none;
+            font-family: inherit;
+            resize: none;
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            line-height: 1.5;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .helper-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            margin-left: 4px;
+        }
+
+        .character-count {
+            position: absolute;
+            bottom: 8px;
+            right: 16px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--gradient-button);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            margin-top: 24px;
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4);
+        }
+
+        .submit-btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-container {
+            display: none;
+            text-align: center;
+            padding: 48px 40px;
+            background: var(--background-secondary);
+            border-radius: 20px;
+            margin-top: 24px;
+            border: 1px solid var(--border-secondary);
+        }
+
+        .loading-animation {
+            position: relative;
+            margin: 0 auto 24px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-secondary);
+            border-top: 3px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        }
+
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            animation: loadingDots 1.4s ease-in-out infinite both;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        .loading-text {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .result-container {
+            display: none;
+            background: var(--background-secondary);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 24px;
+            border: 1px solid var(--border-secondary);
+            position: relative;
+        }
+
+        .success-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--success-green);
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            animation: successPulse 0.6s ease-out;
+        }
+
+        .success-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .audio-player-container {
+            background: var(--background-tertiary);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-secondary);
+        }
+
+        .audio-player {
+            width: 100%;
+            height: 48px;
+            margin-bottom: 20px;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            border: 1.5px solid var(--border-primary);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            min-width: 100px;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        .control-btn.primary {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        .control-btn.primary:hover {
+            background: var(--primary-blue-hover);
+            border-color: var(--primary-blue-hover);
+        }
+
+        .control-btn.download {
+            background: var(--success-green);
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .control-btn.download:hover {
+            background: #28A745;
+            border-color: #28A745;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            background: var(--background-secondary);
+            margin: 15% auto;
+            padding: 32px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid var(--border-primary);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .error-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--error-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 16px;
+            font-size: 18px;
+        }
+
+        .modal-header h3 {
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .close-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--background-tertiary);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--border-primary);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 16px;
+            background: var(--background-tertiary);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-secondary);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes loadingDots {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-30px) scale(0.95); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 16px;
+            }
+            
+            .header {
+                padding: 32px 24px 24px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .form-container {
+                padding: 24px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .audio-controls {
+                flex-direction: column;
+            }
+            
+            .control-btn {
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-icon {
+                width: 64px;
+                height: 64px;
+                font-size: 28px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .section-title {
+                font-size: 18px;
+            }
+        }
+
+        .voice-preview {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--background-tertiary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .voice-preview:hover {
+            background: var(--border-primary);
+            color: var(--text-primary);
+        }
+
+        .feature-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--gradient-button);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="container">
+            <div class="main-card">
+                <div class="header">
+                    <div class="app-icon">
+                        🎤
+                    </div>
+                    <h1>OpenAI TTS Pro</h1>
+                    <p class="subtitle">专业级文本语音合成服务<span class="feature-badge">🚀 Premium</span></p>
+                </div>
+                
+                <div class="form-container">
+                    <form id="ttsForm">
+                        <div class="form-section">
+                            <h3 class="section-title">🔧 API 配置</h3>
+                            
+                            <div class="form-group">
+                                <label for="baseUrl">API 基础URL</label>
+                                <div class="input-container">
+                                    <input type="url" id="baseUrl" value="https://api.openai.com" required>
+                                </div>
+                                <div class="helper-text">OpenAI API 的基础URL地址</div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="apiKey">API Key</label>
+                                <div class="input-container">
+                                    <input type="password" id="apiKey" placeholder="sk-..." required>
+                                </div>
+                                <div class="helper-text">您的 OpenAI API 密钥，将被安全存储</div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">📝 文本内容</h3>
+                            
+                            <div class="form-group">
+                                <label for="userInput">要转换的文本</label>
+                                <div class="input-container">
+                                    <textarea id="userInput" placeholder="请输入要转换为语音的文本内容..." required></textarea>
+                                    <div class="character-count">
+                                        <span id="charCount">0</span>/4000
+                                    </div>
+                                </div>
+                                <div class="helper-text">支持多种语言，建议单次输入1000字符以内获得最佳效果</div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">🎛️ 语音设置</h3>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="voice">音色选择</label>
+                                    <div class="input-container">
+                                        <select id="voice" required>
+                                            <option value="alloy">Alloy</option>
+                                            <option value="ash">Ash</option>
+                                            <option value="ballad">Ballad</option>
+                                            <option value="coral">Coral</option>
+                                            <option value="echo">Echo</option>
+                                            <option value="fable">Fable</option>
+                                            <option value="nova" selected>Nova</option>
+                                            <option value="onyx">Onyx</option>
+                                            <option value="sage">Sage</option>
+                                            <option value="shimmer">Shimmer</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="model">模型选择</label>
+                                    <div class="input-container">
+                                        <select id="model" required>
+                                            <option value="tts-1" selected>TTS-1</option>
+                                            <option value="tts-1-1106">TTS-1-1106</option>
+                                            <option value="tts-1-hd">TTS-1-HD</option>
+                                            <option value="tts-1-hd-1106">TTS-1-HD-1106</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="submit-btn" id="submitBtn">
+                            🎵 生成专业语音
+                        </button>
+                    </form>
+
+                    <div class="loading-container" id="loading">
+                        <div class="loading-animation">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-dots">
+                                <div class="loading-dot"></div>
+                                <div class="loading-dot"></div>
+                                <div class="loading-dot"></div>
+                            </div>
+                        </div>
+                        <p class="loading-text">AI正在精心合成您的语音，请稍候...</p>
+                    </div>
+
+                    <div class="result-container" id="resultContainer">
+                        <div class="success-header">
+                            <div class="success-icon">✓</div>
+                            <h3 class="success-title">语音合成完成</h3>
+                            <p style="color: var(--text-secondary);">您的专业语音已准备就绪</p>
+                        </div>
+                        
+                        <div class="audio-player-container">
+                            <audio id="audioPlayer" controls class="audio-player">
+                                您的浏览器不支持音频播放器
+                            </audio>
+                            
+                            <div class="audio-controls">
+                                <button class="control-btn primary" onclick="playAudio()">
+                                    ▶️ 播放
+                                </button>
+                                <button class="control-btn" onclick="pauseAudio()">
+                                    ⏸️ 暂停
+                                </button>
+                                <button class="control-btn" onclick="restartAudio()">
+                                    🔄 重播
+                                </button>
+                                <button class="control-btn download" onclick="downloadAudio()">
+                                    💾 下载音频
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="error-icon">⚠️</div>
+                <h3>请求处理失败</h3>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="errorMessage">
+                发生了未知错误，请检查您的网络连接和API配置后重试。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAudioBlob = null;
+        let currentAudioUrl = null;
+
+        // 字符计数器
+        const userInput = document.getElementById('userInput');
+        const charCount = document.getElementById('charCount');
+        
+        userInput.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = count;
+            
+            if (count > 4000) {
+                charCount.style.color = 'var(--error-red)';
+            } else if (count > 3500) {
+                charCount.style.color = 'var(--warning-orange)';
+            } else {
+                charCount.style.color = 'var(--text-tertiary)';
+            }
+        });
+
+        // 表单提交处理
+        document.getElementById('ttsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const text = document.getElementById('userInput').value.trim();
+            const voice = document.getElementById('voice').value;
+            const model = document.getElementById('model').value;
+
+            // 表单验证
+            if (text.length > 4000) {
+                showErrorModal('文本长度超过4000字符限制，请缩短后重试。');
+                return;
+            }
+
+            // UI状态更新
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '🔄 处理中...';
+            loading.style.display = 'block';
+            resultContainer.style.display = 'none';
+
+            try {
+                const apiUrl = `${baseUrl}/v1/audio/speech`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        input: text,
+                        voice: voice,
+                        response_format: 'mp3'
+                    })
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error && errorData.error.message) {
+                            errorMessage = errorData.error.message;
+                        }
+                    } catch (e) {
+                        // 如果无法解析错误JSON，使用默认错误信息
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const audioBlob = await response.blob();
+                currentAudioBlob = audioBlob;
+
+                // 清理之前的URL
+                if (currentAudioUrl) {
+                    URL.revokeObjectURL(currentAudioUrl);
+                }
+
+                currentAudioUrl = URL.createObjectURL(audioBlob);
+                const audioPlayer = document.getElementById('audioPlayer');
+                audioPlayer.src = currentAudioUrl;
+
+                // 显示结果
+                setTimeout(() => {
+                    resultContainer.style.display = 'block';
+                    resultContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 500);
+
+            } catch (error) {
+                console.error('TTS请求失败:', error);
+                showErrorModal(error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🎵 生成专业语音';
+                loading.style.display = 'none';
+            }
+        });
+
+        // 音频控制函数
+        function playAudio() {
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.play().catch(e => console.log('播放失败:', e));
+        }
+
+        function pauseAudio() {
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.pause();
+        }
+
+        function restartAudio() {
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.currentTime = 0;
+            audioPlayer.play().catch(e => console.log('播放失败:', e));
+        }
+
+        function downloadAudio() {
+            if (!currentAudioBlob) {
+                showErrorModal('没有可下载的音频文件');
+                return;
+            }
+
+            const voice = document.getElementById('voice').value;
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const fileName = `TTS_${voice}_${timestamp}.mp3`;
+
+            const downloadLink = document.createElement('a');
+            downloadLink.href = currentAudioUrl;
+            downloadLink.download = fileName;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        // 模态框控制
+        function showErrorModal(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('errorModal').style.display = 'none';
+        }
+
+        // 事件监听器
+        window.onclick = function(event) {
+            const modal = document.getElementById('errorModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // 清理资源
+        window.addEventListener('beforeunload', function() {
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+        });
+
+        // 音频播放器事件
+        document.getElementById('audioPlayer').addEventListener('ended', function() {
+            // 播放完成后的处理
+        });
+
+        document.getElementById('audioPlayer').addEventListener('error', function(e) {
+            showErrorModal('音频播放失败，请检查音频文件是否完整');
+        });
+    </script>
+</body>
+</html>
